@@ -1,7 +1,11 @@
 {
   "name": "portfolio-reconciliator",
   "version": "1.0.0",
-  "description": "",
+  "description": "For personal use only",
+  "repository": {
+    "type": "github",
+    "url": "https://github.com/JorgeLGonzalez/portfolio-reconciliator"
+  },
   "main": "main.ts",
   "scripts": {
     "start": "ts-node main.ts",
