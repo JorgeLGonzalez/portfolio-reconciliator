@@ -14,17 +14,8 @@ export class QuickenPortfolioImporter {
 
   public accountsMap = new Map<AccountName, Account>();
 
-  constructor() {
-    this.addAccount(AccountName.Glori, "Glori Investments");
-    this.addAccount(AccountName.Joint, "Joint Investments");
-    this.addAccount(AccountName.Daniel, "Daniel 529");
-    this.addAccount(AccountName.Ale, "Ale 529");
-    this.addAccount(AccountName.GloriIra, "Glori IRA Ameriprise");
-    this.addAccount(AccountName.StrategicPortfolio, "Strategic Portfolio");
-    this.addAccount(AccountName.GloriIraFunds, "Glori IRA Funds");
-    this.addAccount(AccountName.GloriIraMixed, "Glori IRA Mixed");
-    this.addAccount(AccountName.JorgeIraFunds, "Jorge IRA Funds");
-    this.addAccount(AccountName.JorgeIraStocks, "Jorge IRA Stocks");
+  constructor(accounts) {
+    accounts.forEach(a => this.addAccount(a.name, a.quicken));
     this.quickenAccountMap = [...this.accountsMap.entries()].reduce(
       (m, [_, account]) => m.set(account.alias, account.name),
       new Map<string, AccountName>()
@@ -64,29 +55,40 @@ export class QuickenPortfolioImporter {
     if (fields.length !== 5) return RowType.Other;
 
     const firstField = fields[0];
+
+    if (firstField === "Cash") return RowType.Cash;
+
+    if (["Name", "", "Totals in U.S. Dollar"].indexOf(firstField) >= 0)
+      return RowType.Other;
+
     if (this.quickenAccountMap.has(firstField)) return RowType.AccountHeader;
 
-    switch (firstField) {
-      case "Cash":
-        return RowType.Cash;
-      case "Name":
-      case "":
-      case "Totals in U.S. Dollar":
-        return RowType.Other;
-      default:
-        return RowType.Item;
-      // throw new Error("Unrecognied row type " + firstField);
-    }
+    if (!fields[2] || !fields[3])
+      throw new Error(
+        `Unrecognized row type in Quicken file: ${fields.join("\t")}`
+      );
+
+      return RowType.Item;
   };
 
-  private determineActiveAccount = firstField =>
-    this.accountsMap.get(this.quickenAccountMap.get(firstField));
+  private determineActiveAccount = firstField => {
+    if (!this.quickenAccountMap.has(firstField))
+      throw new Error(`Unrecognized quicken account '${firstField}'`);
+
+    const account = this.accountsMap.get(
+      this.quickenAccountMap.get(firstField)
+    );
+
+    if (!account) throw new Error(`Quicken account '${firstField}' not found!`);
+
+    return account;
+  };
 
   private buildPosition = (fields): Position => {
     return {
       name: fields[0],
       symbol: fields[2],
-      shares: parseFloat(fields[3].replace(/,/g, '')),
+      shares: parseFloat(fields[3].replace(/,/g, "")),
       value: parseFloat(fields[4].replace(",", "")),
       raw: fields.join("\t")
     };
