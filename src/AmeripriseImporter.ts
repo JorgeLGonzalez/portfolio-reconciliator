@@ -1,44 +1,54 @@
 import * as fs from "fs";
-import { AccountName, Account, Position } from "./Account";
-import * as csv from 'csv-string';
+import {  Account, Position, IAccount } from "./Account";
+import * as csv from "csv-string";
 
-export class AmerpriseImporter {
-  private ameripriseAccountMap = new Map<string, AccountName>();
+export class AmeripriseImporter {
+  private ameripriseAccountMap = new Map<string, string>();
 
-  public accountsMap = new Map<AccountName, Account>();
+  public accountsMap = new Map<string, Account>();
 
-  constructor(accounts) {
-    accounts.forEach(a => this.addAccount(a.name, a.ameriprise));
+  constructor(accounts: IAccount[]) {
+    accounts.forEach((a) => this.addAccount(a.name, a.ameriprise));
 
     this.ameripriseAccountMap = [...this.accountsMap.entries()].reduce(
       (m, [_, account]) => m.set(account.alias, account.name),
-      new Map<string, AccountName>()
+      new Map<string, string>()
     );
   }
 
-  private addAccount = (name: AccountName, alias: string) => {
+  private addAccount(name: string, alias: string) {
     const account = new Account(name, alias);
     this.accountsMap.set(name, account);
 
     return account;
-  };
+  }
 
-  import = filename => {
+  public import(filename: string) {
     const file = fs.readFileSync(filename, "utf-8");
-    file
-      .split("\r\n")
-      .filter(r => {
-         return  r.startsWith(`"Equities"`) || r.startsWith(`"Mutual Funds"`)
-        })
-      .map(this.parseRow);
-  };
+    file.split("\r\n").forEach((r) => this.parseRow(r));
+  }
 
-  private parseRow = row => {
-    const fields = csv.parse(row)[0].map(f => f.replace(/[",\$"]/g, '').trim());
-    const accountAlias = fields[3].replace(/"/g, '').trim();
+  private parseRow(row: string): void {
+    const fields = csv
+      .parse(row)[0]
+      .map((f: string) => f.replace(/[",\$"]/g, "").trim());
+
+    if (
+      fields.length < 7 ||
+      fields[0] === "Symbol" ||
+      fields[0].startsWith("Total ")
+    ) {
+      return;
+    }
+
+    const accountAlias = fields[2].replace(/"/g, "").trim();
     const account = this.accountsMap.get(
       this.ameripriseAccountMap.get(accountAlias)
     );
+
+    if (accountAlias === "TERM LIFE INS" || fields[0] === "FIX") {
+      return;
+    }
 
     if (account) {
       const position = this.buildPosition(fields);
@@ -46,15 +56,15 @@ export class AmerpriseImporter {
     } else {
       throw new Error(`Unrecognized Ameriprise account '${accountAlias}'`);
     }
-  };
+  }
 
-  private buildPosition = (fields): Position => {
+  private buildPosition(fields): Position {
     return {
-      name: fields[2],
-      symbol: fields[1],
+      name: fields[1],
+      symbol: fields[0],
       shares: parseFloat(fields[4]),
       value: parseFloat(fields[6].replace(",", "")),
-      raw: fields.join("\t")
+      raw: fields.join("\t"),
     };
-  };
+  }
 }

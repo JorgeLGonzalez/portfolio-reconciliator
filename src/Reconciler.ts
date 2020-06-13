@@ -1,9 +1,9 @@
-import { Account, AccountName, Position } from "./Account";
+import { Account, Position } from "./Account";
 
 export class Reconciler {
   public reconcile = (
-    ameriprise: Map<AccountName, Account>,
-    quicken: Map<AccountName, Account>
+    ameriprise: Map<string, Account>,
+    quicken: Map<string, Account>
   ) => {
     return [...ameriprise.values()]
       .map(a => ({
@@ -19,8 +19,8 @@ export class Reconciler {
   };
 
   private reconcileAccount = (account1: Account, account2: Account) => {
-    account1 = account1 || new Account(AccountName.None, AccountName.None);
-    account2 = account2 || new Account(AccountName.None, AccountName.None);
+    account1 = account1 || new Account('None', 'None');
+    account2 = account2 || new Account('None', 'None');
 
     return [...account1.positionsMap.values()]
       .map(master =>
@@ -41,7 +41,7 @@ export class Reconciler {
       master,
       target,
       sharesDiff: master.shares - target.shares,
-      valueDiff: master.value - target.value
+      valueDiff: Math.round(master.value - target.value)
     };
   };
 }

@@ -1,15 +1,6 @@
 export enum AccountName {
-  Glori = "Glori Ameriprise",
-  GloriIra = "Glori IRA Ameriprise",
-  StrategicPortfolio = "Strategic Portfolio",
-  GloriIraFunds = "Glori IRA Funds",
-  GloriIraMixed = "Glori IRA Mixed",
-  JorgeIraFunds = "Jorge IRA Funds",
-  JorgeIraStocks = "Jorge IRA Stocks",
-  Joint = "Joint",
-  Daniel = "Daniel 529",
-  Ale = "Ale 529",
-
+  JointIndex = 'Joint Index',
+ 
   None = 'None'
 }
 
@@ -29,10 +20,16 @@ export class Account {
   }
 
   constructor(
-    public readonly name: AccountName,
+    public readonly name: string,
     public readonly alias: string
   ) {}
 
   public addPosition = (position: Position) =>
     this.positionsMap.set(position.symbol, position);
+}
+
+export interface IAccount {
+  name: string;
+  quicken: string;
+  ameriprise: string;
 }
